@@ -266,27 +266,49 @@ class ImageEncoder(object):
         }
 
     def start(self):
-        self.cmdline = (self.backend,
-                     '-nostats',
-                     '-loglevel', 'error', # suppress warnings
-                     '-y',
+        if self.backend == "ffmpeg":
+            self.cmdline = (self.backend,
+                         '-nostats',
+                         '-loglevel', 'error', # suppress warnings
+                         '-y',
 
-                     # input
-                     '-f', 'rawvideo',
-                     '-s:v', '{}x{}'.format(*self.wh),
-                     '-pix_fmt',('rgb32' if self.includes_alpha else 'rgb24'),
-                     '-framerate', '%d' % self.frames_per_sec,
-                     '-i', '-', # this used to be /dev/stdin, which is not Windows-friendly
+                         # input
+                         '-f', 'rawvideo',
+                         '-s:v', '{}x{}'.format(*self.wh),
+                         '-pix_fmt',('rgb32' if self.includes_alpha else 'rgb24'),
+                         '-r', '%d' % self.frames_per_sec,
+                         '-i', '-', # this used to be /dev/stdin, which is not Windows-friendly
 
-                     # output
-                     '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-                     '-vcodec', 'libx264',
-                     '-pix_fmt', 'yuv420p',
-                     '-r', '%d' % self.output_frames_per_sec,
-                     self.output_path
-                     )
+                         # output
+                         '-an',
+                         '-r', '%d' % self.frames_per_sec,
+                         '-vcodec', 'mpeg4',
+                         '-pix_fmt', 'bgr24',
+                         '-r', '%d' % self.output_frames_per_sec,
+                         self.output_path
+                         )
+        else:
+            self.cmdline = (self.backend,
+                         '-nostats',
+                         '-loglevel', 'error', # suppress warnings
+                         '-y',
 
-        logger.debug('Starting ffmpeg with "%s"', ' '.join(self.cmdline))
+                         # input
+                         '-f', 'rawvideo',
+                         '-s:v', '{}x{}'.format(*self.wh),
+                         '-pix_fmt',('rgb32' if self.includes_alpha else 'rgb24'),
+                         '-framerate', '%d' % self.frames_per_sec,
+                         '-i', '-', # this used to be /dev/stdin, which is not Windows-friendly
+
+                         # output
+                         '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+                         '-vcodec', 'libx264',
+                         '-pix_fmt', 'yuv420p',
+                         '-r', '%d' % self.output_frames_per_sec,
+                         self.output_path
+                         )
+
+        logger.debug('Starting %s with "%s"', self.backend, ' '.join(self.cmdline))
         if hasattr(os,'setsid'): #setsid not present on Windows
             self.proc = subprocess.Popen(self.cmdline, stdin=subprocess.PIPE, preexec_fn=os.setsid)
         else:
