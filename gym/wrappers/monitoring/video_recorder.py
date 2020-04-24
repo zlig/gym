@@ -300,10 +300,14 @@ class ImageEncoder(object):
         if frame.dtype != np.uint8:
             raise error.InvalidFrame("Your frame has data type {}, but we require uint8 (i.e. RGB values from 0-255).".format(frame.dtype))
 
-        if distutils.version.LooseVersion(np.__version__) >= distutils.version.LooseVersion('1.9.0'):
-            self.proc.stdin.write(frame.tobytes())
-        else:
-            self.proc.stdin.write(frame.tostring())
+        try:
+            if distutils.version.LooseVersion(np.__version__) >= distutils.version.LooseVersion('1.9.0'):
+                self.proc.stdin.write(frame.tobytes())
+            else:
+                self.proc.stdin.write(frame.tostring())
+        except Exception as e:
+            stdout, stderr = self.proc.communicate()
+            logger.error("VideoRecorder encoder failed: %s" % stderr)
 
     def close(self):
         self.proc.stdin.close()
